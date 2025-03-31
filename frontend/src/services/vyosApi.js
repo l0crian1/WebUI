@@ -220,7 +220,15 @@ function parseMemoryData(data) {
     // {"total":4117680128,"free":3144159232,"used":973520896,"buffers":54493184,"cached":690941952}
     
     if (!data) {
-      throw new Error('Invalid memory data: data is null or undefined');
+      console.warn('Invalid memory data: data is null or undefined');
+      return {
+        total: 0,
+        used: 0,
+        free: 0,
+        buffers: 0,
+        cached: 0,
+        actualUsed: 0
+      };
     }
     
     // If data is already an object (actual API response), process it directly
@@ -241,40 +249,35 @@ function parseMemoryData(data) {
     
     // For text-based output format (in case API changes or for legacy support)
     if (typeof data === 'string') {
-      // Mock parser implementation for legacy format
       console.warn('String-based memory data detected, this may not be accurate');
-      
-      // For development/testing, return mock data
+      // Return zeros instead of mock data
       return {
-        total: 4000, // MB
-        used: 950,   // MB
-        free: 3050,  // MB
-        buffers: 55, // MB
-        cached: 690, // MB
-        actualUsed: 205 // MB (used - buffers - cached)
+        total: 0,
+        used:.0,
+        free: 0,
+        buffers: 0,
+        cached: 0,
+        actualUsed: 0
       };
     }
     
-    // For development/testing, return mock data
-    if (process.env.NODE_ENV === 'development' && !process.env.USE_REAL_API) {
-      return {
-        total: 4000, // MB
-        used: 950,   // MB
-        free: 3050,  // MB
-        buffers: 55, // MB
-        cached: 690, // MB
-        actualUsed: 205 // MB (used - buffers - cached)
-      };
-    }
-    
-    throw new Error(`Unable to parse memory data: Invalid format: ${typeof data}`);
-  } catch (error) {
-    console.error('Error parsing memory data:', error);
+    // Return zeros instead of mock data when format is unknown
     return {
       total: 0,
       used: 0,
       free: 0,
-      buffers: 0, 
+      buffers: 0,
+      cached: 0,
+      actualUsed: 0
+    };
+  } catch (error) {
+    console.error('Error parsing memory data:', error);
+    // Return zeros on error
+    return {
+      total: 0,
+      used: 0,
+      free: 0,
+      buffers: 0,
       cached: 0,
       actualUsed: 0
     };
@@ -287,11 +290,11 @@ function parseMemoryData(data) {
  * @returns {Object} Structured CPU data
  */
 function parseCpuData(data) {
-  // Placeholder function - implement actual parsing logic
+  // Return zeros instead of mock data
   return {
-    usage: 32,
-    cores: 4,
-    load: [0.52, 0.48, 0.42]
+    usage: 0,
+    cores: 0,
+    load: [0, 0, 0]
   };
 }
 
@@ -301,11 +304,11 @@ function parseCpuData(data) {
  * @returns {Object} Structured storage data
  */
 function parseStorageData(data) {
-  // Placeholder function - implement actual parsing logic
+  // Return zeros instead of mock data
   return {
-    total: 32768,
-    used: 12288,
-    free: 20480
+    total: 0,
+    used: 0,
+    free: 0
   };
 }
 
@@ -315,12 +318,8 @@ function parseStorageData(data) {
  * @returns {Array} Structured interface data
  */
 function parseInterfaceData(data) {
-  // Placeholder function - implement actual parsing logic
-  return [
-    { name: 'eth0', status: 'up', ipv4: '192.168.1.1/24', ipv6: 'fe80::1/64', rx_bytes: 1024000, tx_bytes: 512000 },
-    { name: 'eth1', status: 'up', ipv4: '10.0.0.1/24', ipv6: 'fe80::2/64', rx_bytes: 512000, tx_bytes: 256000 },
-    { name: 'eth2', status: 'down', ipv4: null, ipv6: null, rx_bytes: 0, tx_bytes: 0 }
-  ];
+  // Return empty array instead of mock data
+  return [];
 }
 
 export default {

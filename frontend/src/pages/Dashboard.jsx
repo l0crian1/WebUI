@@ -47,24 +47,20 @@ const Dashboard = () => {
             // with the existing data structure
             setResources(prevResources => ({
               ...prevResources,
-              memory: {
-                total: memoryData.total,
-                used: memoryData.used,
-                free: memoryData.free
-              }
+              memory: memoryData
             }));
             
-            // For CPU and Storage, we can continue using mock data during the transition
+            // For CPU and Storage, we use zeros instead of mock data
             const cpuData = {
-              usage: 32,
-              cores: 4,
-              load: [0.52, 0.48, 0.42]
+              usage: 0,
+              cores: 0,
+              load: [0, 0, 0]
             };
             
             const storageData = {
-              total: 32768,
-              used: 12288,
-              free: 20480
+              total: 0,
+              used: 0,
+              free: 0
             };
             
             setResources({
@@ -77,67 +73,62 @@ const Dashboard = () => {
             // const resourceData = await vyosApi.systemResources.getAllResources();
             // setResources(resourceData);
             
-            // For interfaces, we can use mock data during transition
-            setInterfaces([
-              { name: 'eth0', status: 'up', ipv4: '192.168.1.1/24', ipv6: 'fe80::1/64', rx_bytes: 1024000, tx_bytes: 512000 },
-              { name: 'eth1', status: 'up', ipv4: '10.0.0.1/24', ipv6: 'fe80::2/64', rx_bytes: 512000, tx_bytes: 256000 },
-              { name: 'eth2', status: 'down', ipv4: null, ipv6: null, rx_bytes: 0, tx_bytes: 0 }
-            ]);
+            // For interfaces, we return empty array instead of mock data
+            setInterfaces([]);
             
             // System status and version
             setSystemStatus({
               hostname: 'vyos-router',
-              uptime: '10 days, 4 hours, 30 minutes',
-              status: 'running'
+              uptime: 'Unknown',
+              status: 'unknown'
             });
             
             setVersion({
-              version: 'VyOS 1.4.0',
-              buildDate: '2023-01-15',
-              architecture: 'x86_64'
+              version: 'Unknown',
+              buildDate: 'Unknown',
+              architecture: 'Unknown'
             });
           } catch (apiError) {
             console.error('Error fetching data from VyOS API:', apiError);
             throw apiError;
           }
         } else {
-          // Use mock data for development
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Use zero values instead of mock data
           
           setSystemStatus({
-            hostname: 'vyos-router',
-            uptime: '10 days, 4 hours, 30 minutes',
-            status: 'running'
+            hostname: 'Unknown',
+            uptime: 'Unknown',
+            status: 'unknown'
           });
           
           setResources({
             cpu: {
-              usage: 32,
-              cores: 4,
-              load: [0.52, 0.48, 0.42]
+              usage: 0,
+              cores: 0,
+              load: [0, 0, 0]
             },
             memory: {
-              total: 8192,
-              used: 2048,
-              free: 6144
+              total: 0,
+              used: 0,
+              free: 0,
+              buffers: 0,
+              cached: 0,
+              actualUsed: 0
             },
             storage: {
-              total: 32768,
-              used: 12288,
-              free: 20480
+              total: 0,
+              used: 0,
+              free: 0
             }
           });
           
-          setInterfaces([
-            { name: 'eth0', status: 'up', ipv4: '192.168.1.1/24', ipv6: 'fe80::1/64', rx_bytes: 1024000, tx_bytes: 512000 },
-            { name: 'eth1', status: 'up', ipv4: '10.0.0.1/24', ipv6: 'fe80::2/64', rx_bytes: 512000, tx_bytes: 256000 },
-            { name: 'eth2', status: 'down', ipv4: null, ipv6: null, rx_bytes: 0, tx_bytes: 0 }
-          ]);
+          // Empty array instead of mock interfaces
+          setInterfaces([]);
           
           setVersion({
-            version: 'VyOS 1.4.0',
-            buildDate: '2023-01-15',
-            architecture: 'x86_64'
+            version: 'Unknown',
+            buildDate: 'Unknown',
+            architecture: 'Unknown'
           });
         }
         
