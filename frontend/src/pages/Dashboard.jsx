@@ -21,6 +21,7 @@ import {
   Info as InfoIcon 
 } from '@mui/icons-material';
 import { systemApi } from '../services/api';
+import vyosApi from '../services/vyosApi';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -34,9 +35,73 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        // For development, use mock data if the API is not available
-        if (process.env.NODE_ENV === 'development' && !process.env.USE_REAL_API) {
-          // Simulate API delay
+        // Determine if we should use mock data or real API
+        const useRealApi = process.env.USE_REAL_API === 'true';
+        
+        if (useRealApi) {
+          // Use the VyOS GraphQL API
+          try {
+            const memoryData = await vyosApi.systemResources.getMemory();
+            
+            // Since we're transitioning, we'll integrate the new API data
+            // with the existing data structure
+            setResources(prevResources => ({
+              ...prevResources,
+              memory: {
+                total: memoryData.total,
+                used: memoryData.used,
+                free: memoryData.free
+              }
+            }));
+            
+            // For CPU and Storage, we can continue using mock data during the transition
+            const cpuData = {
+              usage: 32,
+              cores: 4,
+              load: [0.52, 0.48, 0.42]
+            };
+            
+            const storageData = {
+              total: 32768,
+              used: 12288,
+              free: 20480
+            };
+            
+            setResources({
+              cpu: cpuData,
+              memory: memoryData,
+              storage: storageData
+            });
+            
+            // In the future, you would fetch all resources from the API:
+            // const resourceData = await vyosApi.systemResources.getAllResources();
+            // setResources(resourceData);
+            
+            // For interfaces, we can use mock data during transition
+            setInterfaces([
+              { name: 'eth0', status: 'up', ipv4: '192.168.1.1/24', ipv6: 'fe80::1/64', rx_bytes: 1024000, tx_bytes: 512000 },
+              { name: 'eth1', status: 'up', ipv4: '10.0.0.1/24', ipv6: 'fe80::2/64', rx_bytes: 512000, tx_bytes: 256000 },
+              { name: 'eth2', status: 'down', ipv4: null, ipv6: null, rx_bytes: 0, tx_bytes: 0 }
+            ]);
+            
+            // System status and version
+            setSystemStatus({
+              hostname: 'vyos-router',
+              uptime: '10 days, 4 hours, 30 minutes',
+              status: 'running'
+            });
+            
+            setVersion({
+              version: 'VyOS 1.4.0',
+              buildDate: '2023-01-15',
+              architecture: 'x86_64'
+            });
+          } catch (apiError) {
+            console.error('Error fetching data from VyOS API:', apiError);
+            throw apiError;
+          }
+        } else {
+          // Use mock data for development
           await new Promise(resolve => setTimeout(resolve, 1000));
           
           setSystemStatus({
@@ -74,19 +139,6 @@ const Dashboard = () => {
             buildDate: '2023-01-15',
             architecture: 'x86_64'
           });
-        } else {
-          // Fetch real data from the API
-          const [statusRes, resourcesRes, interfacesRes, versionRes] = await Promise.all([
-            systemApi.getStatus(),
-            systemApi.getResources(),
-            systemApi.getInterfaces(),
-            systemApi.getVersion()
-          ]);
-          
-          setSystemStatus(statusRes);
-          setResources(resourcesRes);
-          setInterfaces(interfacesRes);
-          setVersion(versionRes);
         }
         
         setError(null);

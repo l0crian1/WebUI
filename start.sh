@@ -4,7 +4,12 @@
 echo "Setting up VyOS WebUI..."
 
 # Create necessary directories
-mkdir -p frontend/src/services frontend/src/pages
+mkdir -p frontend/src/services frontend/src/pages scripts
+
+# Make Python script executable
+if [ -f scripts/fetch_vyos_data.py ]; then
+  chmod +x scripts/fetch_vyos_data.py
+fi
 
 # Copy API service if it doesn't exist
 if [ ! -f frontend/src/services/api.js ]; then
@@ -511,4 +516,8 @@ echo "Building the application..."
 npm run build
 
 echo "Setup complete! To start the development server, run:"
-echo "cd frontend && npm run start" 
+echo "cd frontend && npm run start"
+echo ""
+echo "To test the VyOS GraphQL API, you can use the Python script:"
+echo "python3 scripts/fetch_vyos_data.py --query memory --insecure"
+echo "python3 scripts/fetch_vyos_data.py --query all --insecure --monitor" 
