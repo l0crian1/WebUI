@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
   Drawer,
@@ -20,17 +21,37 @@ import {
   Router as RouterIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
+import Dashboard from './pages/Dashboard';
+
+// Dummy components for routes that haven't been created yet
+const BgpRoute = () => <div>BGP Route Page</div>;
+const StaticRoute = () => <div>Static Route Page</div>;
 
 // Drawer width
 const drawerWidth = 284;
 
-function App() {
+function AppContent() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     Overview: true,
     Routing: true
   });
   const [selectedItem, setSelectedItem] = useState('Dashboard');
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Set the selected item based on the current path when the component mounts
+  useState(() => {
+    const path = location.pathname;
+    if (path === '/') {
+      setSelectedItem('Dashboard');
+    } else if (path === '/routing/bgp') {
+      setSelectedItem('BGP');
+    } else if (path === '/routing/static') {
+      setSelectedItem('Static');
+    }
+  }, [location.pathname]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -43,8 +64,11 @@ function App() {
     });
   };
 
-  const handleItemSelect = (item) => {
+  const handleItemSelect = (item, path) => {
     setSelectedItem(item);
+    if (path) {
+      navigate(path);
+    }
   };
 
   const mainMenuItems = [
@@ -52,15 +76,15 @@ function App() {
       section: 'Overview',
       icon: <DashboardIcon />,
       items: [
-        { text: 'Dashboard' }
+        { text: 'Dashboard', path: '/' }
       ]
     },
     { 
       section: 'Routing', 
       icon: <RouterIcon />,
       items: [
-        { text: 'BGP' },
-        { text: 'Static' }
+        { text: 'BGP', path: '/routing/bgp' },
+        { text: 'Static', path: '/routing/static' }
       ]
     },
   ];
@@ -136,7 +160,7 @@ function App() {
                     }}
                   >
                     <ListItemButton
-                      onClick={() => handleItemSelect(item.text)}
+                      onClick={() => handleItemSelect(item.text, item.path)}
                       sx={{
                         py: 1.2,
                         pl: selectedItem === item.text ? 8.6 : 9,
@@ -246,14 +270,27 @@ function App() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: 0,
           mt: '64px', // Height of AppBar
           width: { sm: `calc(100% - ${drawerWidth}px)` }
         }}
       >
-        {/* Main content will go here */}
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/routing/bgp" element={<BgpRoute />} />
+          <Route path="/routing/static" element={<StaticRoute />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </Box>
     </Box>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 }
 
