@@ -26,6 +26,64 @@ console.log('  USE_REAL_API:', process.env.USE_REAL_API);
 console.log('  NODE_ENV:', process.env.NODE_ENV);
 console.log('[VyOS API] =========================================\n\n');
 
+// Test the API connection directly when the module loads
+function testApiConnection() {
+  console.log('\n\n[VyOS API] ✓✓✓ TESTING API CONNECTION IMMEDIATELY ✓✓✓');
+  console.log('[VyOS API] This test runs automatically when the application starts');
+  
+  const testQuery = ` {
+ ShowMemory(data: {key: "${API_CONFIG.apiKey}"}) {
+  success
+  errors
+  data {
+   result
+  }
+ }
+}`;
+
+  // Use XMLHttpRequest directly for more reliable logging
+  const xhr = new XMLHttpRequest();
+  
+  xhr.onreadystatechange = function() {
+    console.log(`[VyOS API] Test XHR state change: ${xhr.readyState} (${getReadyStateText(xhr.readyState)})`);
+    
+    if (xhr.readyState === 4) {
+      console.log('[VyOS API] Test completed with status:', xhr.status);
+      
+      if (xhr.status >= 200 && xhr.status < 300) {
+        console.log('[VyOS API] Test successful! Response:', xhr.responseText);
+      } else {
+        console.error('[VyOS API] Test failed with status:', xhr.status);
+        console.error('[VyOS API] Test response text:', xhr.responseText || 'No response text');
+      }
+    }
+  };
+  
+  xhr.onerror = function(event) {
+    console.error('[VyOS API] Test network error occurred!', event);
+    console.error('[VyOS API] Most likely CORS or network connectivity issue');
+    console.error('[VyOS API] Recommended: Test with curl directly:');
+    console.error(`curl -k --raw '${API_CONFIG.endpoint}' -H 'Content-Type: application/json' -d '{"query":" {\\n ShowMemory (data: {key: \\"${API_CONFIG.apiKey}\\"}) {success errors data {result}}}"}'`);
+  };
+  
+  try {
+    xhr.open('POST', API_CONFIG.endpoint, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    
+    const payload = JSON.stringify({ query: testQuery });
+    console.log('[VyOS API] Sending test request with payload:', payload);
+    console.log('[VyOS API] ✓✓✓ END TEST SETUP ✓✓✓\n\n');
+    
+    xhr.send(payload);
+  } catch (err) {
+    console.error('[VyOS API] Error sending test request:', err);
+  }
+}
+
+// Run the test immediately
+testApiConnection();
+
 /**
  * Execute a GraphQL query against the VyOS API
  * @param {string} query - GraphQL query
@@ -34,142 +92,99 @@ console.log('[VyOS API] =========================================\n\n');
  */
 async function executeQuery(query, variables = {}) {
   try {
-    console.log('\n[VyOS API] Executing query:', query);
+    console.log('\n\n[VyOS API] ===================== EXECUTING QUERY ======================');
+    console.log('[VyOS API] Query:', query);
     console.log('[VyOS API] Using endpoint:', API_CONFIG.endpoint);
-
-    const requestBody = {
-      query,
-      variables,
-    };
-
-    // Add additional headers for CORS
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      // Add explicit CORS headers that might help
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    };
-
-    console.log('[VyOS API] Request headers:', headers);
-
-    // Define fetch options with more detailed settings
-    const fetchOptions = {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody),
-      mode: 'cors', // Explicitly set CORS mode
-      credentials: 'omit', // Don't send cookies
-      cache: 'no-cache', // Don't use cache
-      redirect: 'follow', // Follow redirects
-    };
+    console.log('[VyOS API] API Key:', API_CONFIG.apiKey);
     
-    console.log('[VyOS API] Starting fetch request...');
-
-    // Attempt a simple preflight check before the main request
-    try {
-      const testResponse = await fetch(API_CONFIG.endpoint, { 
-        method: 'OPTIONS',
-        headers: {
-          'Access-Control-Request-Method': 'POST',
-          'Access-Control-Request-Headers': 'Content-Type',
-          'Origin': window.location.origin
-        },
-        mode: 'cors'
-      });
-      console.log('[VyOS API] Preflight response:', testResponse.status, testResponse.statusText);
-    } catch (preflightError) {
-      console.error('[VyOS API] Preflight check failed:', preflightError);
-      console.error('[VyOS API] This indicates a potential CORS issue');
-    }
-
-    try {
-      console.log('[VyOS API] Sending main request to:', API_CONFIG.endpoint);
+    return new Promise((resolve, reject) => {
+      console.log('[VyOS API] Creating XMLHttpRequest');
+      // Use XMLHttpRequest instead of fetch for more reliable logging
+      const xhr = new XMLHttpRequest();
       
-      // Format the request more like the working curl command
-      const requestStr = JSON.stringify({
-        query: query
-      });
-      
-      console.log('[VyOS API] Request payload:', requestStr);
-      
-      const response = await fetch(API_CONFIG.endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: requestStr,
-        mode: 'cors',
-        credentials: 'omit',
-        cache: 'no-cache',
-        redirect: 'follow',
-      });
-      console.log('[VyOS API] Response status:', response.status, response.statusText);
-
-      if (!response.ok) {
-        console.error('[VyOS API] Response not OK:', response.status, response.statusText);
-        let errorText;
-        try {
-          errorText = await response.text();
-          console.error('[VyOS API] Error response body:', errorText);
-        } catch (e) {
-          console.error('[VyOS API] Could not read error text:', e);
+      // Log all stages of the request
+      xhr.onreadystatechange = function() {
+        console.log(`[VyOS API] XHR state change: ${xhr.readyState} (${getReadyStateText(xhr.readyState)})`);
+        
+        if (xhr.readyState === 4) {
+          console.log('[VyOS API] XHR completed with status:', xhr.status);
+          
+          if (xhr.status >= 200 && xhr.status < 300) {
+            console.log('[VyOS API] XHR response received:', xhr.responseText);
+            try {
+              const response = JSON.parse(xhr.responseText);
+              console.log('[VyOS API] Response parsed successfully');
+              
+              if (response.errors) {
+                console.error('[VyOS API] GraphQL errors:', JSON.stringify(response.errors));
+                reject(new Error(`GraphQL Error: ${response.errors.map(e => e.message).join(', ')}`));
+                return;
+              }
+              
+              console.log('[VyOS API] Request successful, returning data');
+              resolve(response.data);
+            } catch (parseError) {
+              console.error('[VyOS API] Error parsing response:', parseError);
+              console.error('[VyOS API] Raw response:', xhr.responseText);
+              reject(new Error(`Failed to parse API response: ${parseError.message}`));
+            }
+          } else {
+            console.error('[VyOS API] XHR request failed with status:', xhr.status);
+            console.error('[VyOS API] Response text:', xhr.responseText || 'No response text');
+            reject(new Error(`API request failed with status ${xhr.status}`));
+          }
         }
-        throw new Error(`API request failed with status ${response.status}: ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
-      }
-
-      let responseText;
-      try {
-        // First get the raw text for debugging
-        responseText = await response.clone().text();
-        console.log('[VyOS API] Raw response:', responseText);
-        
-        // Then parse as JSON
-        const data = await response.json();
-        console.log('[VyOS API] JSON data successfully parsed');
-        
-        if (data.errors) {
-          console.error('[VyOS API] GraphQL errors:', JSON.stringify(data.errors));
-          throw new Error(
-            `GraphQL Error: ${data.errors.map(e => e.message).join(', ')}`
-          );
-        }
-        
-        console.log('[VyOS API] Request successful');
-        return data.data;
-      } catch (parseError) {
-        console.error('[VyOS API] Error parsing response:', parseError);
-        console.error('[VyOS API] Response was:', responseText);
-        throw new Error(`Failed to parse API response: ${parseError.message}`);
-      }
-    } catch (fetchError) {
-      console.error('\n[VyOS API] ⚠️ FETCH ERROR ⚠️');
-      console.error('[VyOS API] Error details:', fetchError);
-      console.error('[VyOS API] Error message:', fetchError.message);
+      };
       
-      // Enhanced network error diagnostics
-      const isNetworkError = fetchError.message.includes('Failed to fetch') || 
-                            fetchError.message.includes('NetworkError') ||
-                            fetchError.message.includes('Network request failed');
-                            
-      if (isNetworkError) {
-        console.error('\n[VyOS API] 🔴 NETWORK ERROR DETECTED');
+      xhr.onerror = function(event) {
+        console.error('[VyOS API] XHR network error occurred:', event);
+        console.error('[VyOS API] 🔴 CONNECTION ERROR');
         console.error('[VyOS API] Common causes:');
         console.error('  1. The VyOS router might not be reachable');
-        console.error('  2. The VyOS API might not be running');
-        console.error('  3. CORS might be blocking the request');
-        console.error('  4. A firewall might be blocking the request');
-        console.error('\n[VyOS API] Try running this curl command in your terminal:');
+        console.error('  2. CORS might be blocking the request (likely cause)');
+        console.error('  3. The API might not be enabled on the VyOS router');
+        console.error('[VyOS API] Try the curl command directly:');
         console.error(`curl -k --raw '${API_CONFIG.endpoint}' -H 'Content-Type: application/json' -d '{"query":" {\\n ShowMemory (data: {key: \\"${API_CONFIG.apiKey}\\"}) {success errors data {result}}}"}'`);
-        console.error('\n[VyOS API] If curl works but browser requests fail, it is likely a CORS issue');
-      }
+        reject(new Error('Network error occurred'));
+      };
       
-      throw fetchError;
-    }
+      try {
+        console.log('[VyOS API] Opening XHR connection...');
+        xhr.open('POST', API_CONFIG.endpoint, true);
+        
+        // Set headers
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Accept', 'application/json');
+        
+        // Format the request more like the working curl command
+        const requestStr = JSON.stringify({
+          query: query
+        });
+        
+        console.log('[VyOS API] Sending request with payload:', requestStr);
+        console.log('[VyOS API] ===========================================================\n\n');
+        
+        xhr.send(requestStr);
+      } catch (sendError) {
+        console.error('[VyOS API] Error sending XHR request:', sendError);
+        reject(sendError);
+      }
+    });
   } catch (error) {
     console.error('[VyOS API] Fatal error in executeQuery:', error);
     throw error;
+  }
+}
+
+// Helper function to get readable XHR state
+function getReadyStateText(state) {
+  switch (state) {
+    case 0: return 'UNSENT';
+    case 1: return 'OPENED';
+    case 2: return 'HEADERS_RECEIVED';
+    case 3: return 'LOADING';
+    case 4: return 'DONE';
+    default: return 'UNKNOWN';
   }
 }
 

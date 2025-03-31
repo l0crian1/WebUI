@@ -307,6 +307,103 @@ const Dashboard = () => {
             <Typography variant="body2" sx={{ mt: 1 }}>
               Configured API Endpoint: {process.env.REACT_APP_VYOS_API_ENDPOINT || process.env.VYOS_API_ENDPOINT || 'Not configured'}
             </Typography>
+            
+            <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => {
+                  console.log('\n\n[Dashboard] *** MANUAL API TEST INITIATED ***');
+                  
+                  const endpoint = process.env.REACT_APP_VYOS_API_ENDPOINT || process.env.VYOS_API_ENDPOINT || 'https://10.0.101.245/graphql';
+                  const apiKey = process.env.REACT_APP_VYOS_API_KEY || process.env.VYOS_API_KEY || 'test123';
+                  
+                  console.log(`[Dashboard] Testing connection to: ${endpoint}`);
+                  console.log(`[Dashboard] Using API key: ${apiKey}`);
+                  
+                  const xhr = new XMLHttpRequest();
+                  xhr.onreadystatechange = function() {
+                    console.log(`[Dashboard] Test XHR state: ${xhr.readyState}`);
+                    if (xhr.readyState === 4) {
+                      console.log(`[Dashboard] Test completed with status: ${xhr.status}`);
+                      if (xhr.status >= 200 && xhr.status < 300) {
+                        console.log('[Dashboard] Success! Response:', xhr.responseText);
+                        alert('API test successful! See console for details.');
+                      } else {
+                        console.error('[Dashboard] Test failed:', xhr.status, xhr.statusText);
+                        console.error('[Dashboard] Response:', xhr.responseText || 'No response');
+                        alert(`API test failed with status ${xhr.status}. See console for details.`);
+                      }
+                    }
+                  };
+                  
+                  xhr.onerror = function(event) {
+                    console.error('[Dashboard] Test network error:', event);
+                    alert('API test failed due to network error. Check console for details.');
+                  };
+                  
+                  try {
+                    xhr.open('POST', endpoint, true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    
+                    const query = ` {
+ ShowMemory(data: {key: "${apiKey}"}) {
+  success
+  errors
+  data {
+   result
+  }
+ }
+}`;
+                    
+                    const payload = JSON.stringify({ query });
+                    console.log('[Dashboard] Sending request with payload:', payload);
+                    xhr.send(payload);
+                  } catch (err) {
+                    console.error('[Dashboard] Error sending test request:', err);
+                    alert(`Error sending test request: ${err.message}`);
+                  }
+                }}
+                style={{
+                  backgroundColor: '#2196f3',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                Test API Connection
+              </button>
+              
+              <button
+                onClick={() => {
+                  const endpoint = process.env.REACT_APP_VYOS_API_ENDPOINT || process.env.VYOS_API_ENDPOINT || 'https://10.0.101.245/graphql';
+                  const apiKey = process.env.REACT_APP_VYOS_API_KEY || process.env.VYOS_API_KEY || 'test123';
+                  const command = `curl -k --raw '${endpoint}' -H 'Content-Type: application/json' -d '{"query":" {\\n ShowMemory (data: {key: \\"${apiKey}\\"}) {success errors data {result}}}"}'`;
+                  
+                  console.log('\n[Dashboard] Curl command to test API:');
+                  console.log(command);
+                  
+                  navigator.clipboard.writeText(command)
+                    .then(() => alert('Curl command copied to clipboard!'))
+                    .catch(() => {
+                      console.error('Failed to copy command');
+                      alert('Failed to copy command to clipboard. See console for the command.');
+                    });
+                }}
+                style={{
+                  backgroundColor: '#4caf50',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                Copy curl Command
+              </button>
+            </Box>
           </Box>
         </Paper>
       )}
