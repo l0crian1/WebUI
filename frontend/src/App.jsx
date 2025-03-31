@@ -68,7 +68,7 @@ function App() {
   const drawer = (
     <Box sx={{ bgcolor: '#252525', height: '100%' }}>
       <List sx={{ p: 0 }}>
-        {mainMenuItems.map((section) => (
+        {mainMenuItems.map((section, index) => (
           <Box key={section.section}>
             <ListItem 
               disablePadding 
@@ -125,7 +125,7 @@ function App() {
             
             {expandedSections[section.section] && (
               <List disablePadding>
-                {section.items.map((item) => (
+                {section.items.map((item, itemIndex) => (
                   <ListItem 
                     key={item.text} 
                     disablePadding
@@ -157,9 +157,16 @@ function App() {
                         }}
                       />
                     </ListItemButton>
+                    {itemIndex < section.items.length - 1 && (
+                      <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)' }} />
+                    )}
                   </ListItem>
                 ))}
               </List>
+            )}
+            
+            {index < mainMenuItems.length - 1 && (
+              <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)' }} />
             )}
           </Box>
         ))}
