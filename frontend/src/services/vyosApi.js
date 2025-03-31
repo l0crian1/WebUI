@@ -86,7 +86,25 @@ async function executeQuery(query, variables = {}) {
 
     try {
       console.log('[VyOS API] Sending main request to:', API_CONFIG.endpoint);
-      const response = await fetch(API_CONFIG.endpoint, fetchOptions);
+      
+      // Format the request more like the working curl command
+      const requestStr = JSON.stringify({
+        query: query
+      });
+      
+      console.log('[VyOS API] Request payload:', requestStr);
+      
+      const response = await fetch(API_CONFIG.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: requestStr,
+        mode: 'cors',
+        credentials: 'omit',
+        cache: 'no-cache',
+        redirect: 'follow',
+      });
       console.log('[VyOS API] Response status:', response.status, response.statusText);
 
       if (!response.ok) {
@@ -143,7 +161,7 @@ async function executeQuery(query, variables = {}) {
         console.error('  3. CORS might be blocking the request');
         console.error('  4. A firewall might be blocking the request');
         console.error('\n[VyOS API] Try running this curl command in your terminal:');
-        console.error(`curl -k -X POST ${API_CONFIG.endpoint} -H "Content-Type: application/json" -d '{"query": "{ShowMemory(data: {key: \\"${API_CONFIG.apiKey}\\"}) {success errors data {result}}}"}'`);
+        console.error(`curl -k --raw '${API_CONFIG.endpoint}' -H 'Content-Type: application/json' -d '{"query":" {\\n ShowMemory (data: {key: \\"${API_CONFIG.apiKey}\\"}) {success errors data {result}}}"}'`);
         console.error('\n[VyOS API] If curl works but browser requests fail, it is likely a CORS issue');
       }
       
@@ -165,15 +183,15 @@ export const systemResources = {
    */
   getMemory: async () => {
     console.log('[VyOS API] getMemory: Starting request');
-    const query = `{
-      ShowMemory(data: {key: "${API_CONFIG.apiKey}"}) {
-        success
-        errors
-        data {
-          result
-        }
-      }
-    }`;
+    const query = ` {
+ ShowMemory(data: {key: "${API_CONFIG.apiKey}"}) {
+  success
+  errors
+  data {
+   result
+  }
+ }
+}`;
 
     try {
       console.log('[VyOS API] getMemory: Executing query');

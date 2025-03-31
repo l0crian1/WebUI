@@ -247,9 +247,7 @@ const Dashboard = () => {
                 fontSize: '0.75rem'
               }}>
                 <code>
-                  {`curl -k -X POST ${process.env.REACT_APP_VYOS_API_ENDPOINT || process.env.VYOS_API_ENDPOINT || 'https://10.0.101.245/graphql'} \\
-  -H "Content-Type: application/json" \\
-  -d '{"query": "{ShowMemory(data: {key: \\"${process.env.REACT_APP_VYOS_API_KEY || process.env.VYOS_API_KEY || 'test123'}\\"}) {success errors data {result}}}"}'`}
+                  {`curl -k --raw '${process.env.REACT_APP_VYOS_API_ENDPOINT || process.env.VYOS_API_ENDPOINT || 'https://10.0.101.245/graphql'}' -H 'Content-Type: application/json' -d '{"query":" {\\n ShowMemory (data: {key: \\"${process.env.REACT_APP_VYOS_API_KEY || process.env.VYOS_API_KEY || 'test123'}\\"}) {success errors data {result}}}"}'`}
                 </code>
               </Box>
             </Box>

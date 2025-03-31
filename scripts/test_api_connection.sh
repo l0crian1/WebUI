@@ -30,9 +30,9 @@ echo ""
 
 # Test memory query
 echo "Testing memory query..."
-curl -k -X POST "$API_ENDPOINT" \
-  -H "Content-Type: application/json" \
-  -d "{\"query\": \"{ShowMemory(data: {key: \\\"$API_KEY\\\"}) {success errors data {result}}}\"}" \
+curl -k --raw "$API_ENDPOINT" \
+  -H 'Content-Type: application/json' \
+  -d "{\"query\":\" {\\n ShowMemory (data: {key: \\\"$API_KEY\\\"}) {success errors data {result}}}\"}" \
   -v
 
 echo ""
