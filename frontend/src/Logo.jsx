@@ -9,22 +9,19 @@ const Logo = (props) => {
       xmlns="http://www.w3.org/2000/svg"
       sx={{ width: 40, height: 40, mr: 1, ...props.sx }}
     >
-      <path
-        d="M12 2L2 7L12 12L22 7L12 2Z"
-        fill="#5bbfea"
-        stroke="#5bbfea"
-        strokeWidth="1"
+      <circle 
+        cx="12" 
+        cy="12" 
+        r="9" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        fill="none"
       />
-      <path
-        d="M2 12L12 17L22 12"
-        stroke="#5bbfea"
-        strokeWidth="1"
-      />
-      <path
-        d="M2 17L12 22L22 17"
-        stroke="#5bbfea"
-        strokeWidth="1"
-        opacity="0.5"
+      <path 
+        d="M7 12h10" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round"
       />
     </Box>
   );
