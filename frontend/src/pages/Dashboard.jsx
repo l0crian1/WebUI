@@ -33,19 +33,18 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      console.log('[Dashboard] Starting fetchDashboardData');
+      console.log('\n[Dashboard] ========== FETCH DASHBOARD DATA ==========');
       setLoading(true);
       try {
         // Determine if we should use mock data or real API
         const useRealApi = process.env.REACT_APP_USE_REAL_API === 'true' || process.env.USE_REAL_API === 'true';
         console.log('[Dashboard] useRealApi:', useRealApi);
-        console.log('[Dashboard] Environment variables:', {
-          REACT_APP_VYOS_API_ENDPOINT: process.env.REACT_APP_VYOS_API_ENDPOINT,
-          VYOS_API_ENDPOINT: process.env.VYOS_API_ENDPOINT,
-          REACT_APP_USE_REAL_API: process.env.REACT_APP_USE_REAL_API,
-          USE_REAL_API: process.env.USE_REAL_API,
-          NODE_ENV: process.env.NODE_ENV
-        });
+        console.log('[Dashboard] Environment variables:');
+        console.log('  REACT_APP_VYOS_API_ENDPOINT:', process.env.REACT_APP_VYOS_API_ENDPOINT);
+        console.log('  VYOS_API_ENDPOINT:', process.env.VYOS_API_ENDPOINT);
+        console.log('  REACT_APP_USE_REAL_API:', process.env.REACT_APP_USE_REAL_API);
+        console.log('  USE_REAL_API:', process.env.USE_REAL_API);
+        console.log('  NODE_ENV:', process.env.NODE_ENV);
         
         if (useRealApi) {
           // Use the VyOS GraphQL API
@@ -107,8 +106,11 @@ const Dashboard = () => {
               architecture: 'Unknown'
             });
           } catch (apiError) {
-            console.error('[Dashboard] Error fetching data from VyOS API:', apiError);
+            console.error('[Dashboard] ERROR FETCHING DATA FROM VYOS API:', apiError);
             console.error('[Dashboard] Error details:', apiError.stack);
+            
+            // Set a more detailed error message
+            setError(`API Connection Error: ${apiError.message}. Check console for details.`);
             throw apiError;
           }
         } else {
@@ -154,11 +156,14 @@ const Dashboard = () => {
         
         setError(null);
       } catch (err) {
-        console.error('[Dashboard] Error fetching dashboard data:', err);
+        console.error('[Dashboard] ⚠️ ERROR FETCHING DASHBOARD DATA:', err);
         console.error('[Dashboard] Error stack:', err.stack);
-        setError('Failed to load dashboard data. Please try again later.');
+        
+        // Set more detailed error message
+        setError(`Failed to load dashboard data: ${err.message}. Please check the console for more details.`);
       } finally {
         setLoading(false);
+        console.log('[Dashboard] =========================================\n');
       }
     };
 
@@ -186,12 +191,76 @@ const Dashboard = () => {
   if (error) {
     return (
       <Box 
-        display="flex" 
+        display="flex"
+        flexDirection="column" 
         justifyContent="center" 
         alignItems="center" 
         minHeight="calc(100vh - 64px)"
+        p={3}
       >
-        <Typography color="error">{error}</Typography>
+        <Paper sx={{ p: 3, bgcolor: '#2a2a2a', maxWidth: '800px', width: '100%' }}>
+          <Typography variant="h5" color="error" sx={{ mb: 2 }}>
+            Connection Error
+          </Typography>
+          
+          <Typography color="error" sx={{ mb: 3 }}>
+            {error}
+          </Typography>
+          
+          <Divider sx={{ mb: 3, borderColor: 'rgba(255, 255, 255, 0.12)' }} />
+          
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Troubleshooting Steps:
+          </Typography>
+          
+          <Box component="ol" sx={{ pl: 2 }}>
+            <Box component="li" sx={{ mb: 1 }}>
+              <Typography>
+                Check that the VyOS router is running and accessible at: {process.env.REACT_APP_VYOS_API_ENDPOINT || process.env.VYOS_API_ENDPOINT || 'https://10.0.101.245/graphql'}
+              </Typography>
+            </Box>
+            <Box component="li" sx={{ mb: 1 }}>
+              <Typography>
+                Verify that the GraphQL API is enabled on the VyOS router
+              </Typography>
+            </Box>
+            <Box component="li" sx={{ mb: 1 }}>
+              <Typography>
+                Ensure that the API key is correct (currently using: {process.env.REACT_APP_VYOS_API_KEY || process.env.VYOS_API_KEY || 'test123'})
+              </Typography>
+            </Box>
+            <Box component="li" sx={{ mb: 1 }}>
+              <Typography>
+                Check browser console for detailed error messages (press F12 to open developer tools)
+              </Typography>
+            </Box>
+            <Box component="li" sx={{ mb: 1 }}>
+              <Typography>
+                Test the API connection directly with curl:
+              </Typography>
+              <Box sx={{ 
+                backgroundColor: '#222', 
+                p: 2, 
+                borderRadius: 1, 
+                my: 1,
+                overflow: 'auto',
+                fontSize: '0.75rem'
+              }}>
+                <code>
+                  {`curl -k -X POST ${process.env.REACT_APP_VYOS_API_ENDPOINT || process.env.VYOS_API_ENDPOINT || 'https://10.0.101.245/graphql'} \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "{ShowMemory(data: {key: \\"${process.env.REACT_APP_VYOS_API_KEY || process.env.VYOS_API_KEY || 'test123'}\\"}) {success errors data {result}}}"}'`}
+                </code>
+              </Box>
+            </Box>
+          </Box>
+          
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              If the problem persists, check the terminal output for additional error information.
+            </Typography>
+          </Box>
+        </Paper>
       </Box>
     );
   }

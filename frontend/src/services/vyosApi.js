@@ -11,21 +11,20 @@ const API_CONFIG = {
   insecure: process.env.REACT_APP_VYOS_API_INSECURE === 'true' || process.env.VYOS_API_INSECURE === 'true',
 };
 
-// Debug information about environment configuration
-console.log('[VyOS API] Configuration loaded:', {
-  endpoint: API_CONFIG.endpoint,
-  insecure: API_CONFIG.insecure,
-  useRealApi: process.env.REACT_APP_USE_REAL_API === 'true' || process.env.USE_REAL_API === 'true',
-  environmentVariables: {
-    REACT_APP_VYOS_API_ENDPOINT: process.env.REACT_APP_VYOS_API_ENDPOINT,
-    VYOS_API_ENDPOINT: process.env.VYOS_API_ENDPOINT,
-    REACT_APP_VYOS_API_INSECURE: process.env.REACT_APP_VYOS_API_INSECURE,
-    VYOS_API_INSECURE: process.env.VYOS_API_INSECURE,
-    REACT_APP_USE_REAL_API: process.env.REACT_APP_USE_REAL_API,
-    USE_REAL_API: process.env.USE_REAL_API,
-    NODE_ENV: process.env.NODE_ENV
-  }
-});
+// Force log to ensure it appears in terminal
+console.log('\n\n[VyOS API] ========== CONFIGURATION LOADED ==========');
+console.log('[VyOS API] Endpoint:', API_CONFIG.endpoint);
+console.log('[VyOS API] Insecure mode:', API_CONFIG.insecure);
+console.log('[VyOS API] Using real API:', process.env.REACT_APP_USE_REAL_API === 'true' || process.env.USE_REAL_API === 'true');
+console.log('[VyOS API] Environment variables:');
+console.log('  REACT_APP_VYOS_API_ENDPOINT:', process.env.REACT_APP_VYOS_API_ENDPOINT);
+console.log('  VYOS_API_ENDPOINT:', process.env.VYOS_API_ENDPOINT);
+console.log('  REACT_APP_VYOS_API_INSECURE:', process.env.REACT_APP_VYOS_API_INSECURE);
+console.log('  VYOS_API_INSECURE:', process.env.VYOS_API_INSECURE);
+console.log('  REACT_APP_USE_REAL_API:', process.env.REACT_APP_USE_REAL_API);
+console.log('  USE_REAL_API:', process.env.USE_REAL_API);
+console.log('  NODE_ENV:', process.env.NODE_ENV);
+console.log('[VyOS API] =========================================\n\n');
 
 /**
  * Execute a GraphQL query against the VyOS API
@@ -35,21 +34,22 @@ console.log('[VyOS API] Configuration loaded:', {
  */
 async function executeQuery(query, variables = {}) {
   try {
-    console.log('[VyOS API] Executing query:', query);
+    console.log('\n[VyOS API] Executing query:', query);
     console.log('[VyOS API] Using endpoint:', API_CONFIG.endpoint);
-    console.log('[VyOS API] Insecure mode:', API_CONFIG.insecure);
-    
+
     const requestBody = {
       query,
       variables,
     };
 
-    console.log('[VyOS API] Request body:', JSON.stringify(requestBody));
-
     // Add additional headers for CORS
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      // Add explicit CORS headers that might help
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
     };
 
     console.log('[VyOS API] Request headers:', headers);
@@ -61,24 +61,38 @@ async function executeQuery(query, variables = {}) {
       body: JSON.stringify(requestBody),
       mode: 'cors', // Explicitly set CORS mode
       credentials: 'omit', // Don't send cookies
-      // For the insecure flag handling
-      ...(API_CONFIG.insecure ? { 
-        rejectUnauthorized: false 
-      } : {})
+      cache: 'no-cache', // Don't use cache
+      redirect: 'follow', // Follow redirects
     };
     
-    console.log('[VyOS API] Fetch options:', JSON.stringify(fetchOptions, null, 2));
+    console.log('[VyOS API] Starting fetch request...');
+
+    // Attempt a simple preflight check before the main request
+    try {
+      const testResponse = await fetch(API_CONFIG.endpoint, { 
+        method: 'OPTIONS',
+        headers: {
+          'Access-Control-Request-Method': 'POST',
+          'Access-Control-Request-Headers': 'Content-Type',
+          'Origin': window.location.origin
+        },
+        mode: 'cors'
+      });
+      console.log('[VyOS API] Preflight response:', testResponse.status, testResponse.statusText);
+    } catch (preflightError) {
+      console.error('[VyOS API] Preflight check failed:', preflightError);
+      console.error('[VyOS API] This indicates a potential CORS issue');
+    }
 
     try {
+      console.log('[VyOS API] Sending main request to:', API_CONFIG.endpoint);
       const response = await fetch(API_CONFIG.endpoint, fetchOptions);
       console.log('[VyOS API] Response status:', response.status, response.statusText);
-      console.log('[VyOS API] Response headers:', Object.fromEntries([...response.headers]));
 
       if (!response.ok) {
         console.error('[VyOS API] Response not OK:', response.status, response.statusText);
         let errorText;
         try {
-          // Try to get error text if possible
           errorText = await response.text();
           console.error('[VyOS API] Error response body:', errorText);
         } catch (e) {
@@ -87,47 +101,56 @@ async function executeQuery(query, variables = {}) {
         throw new Error(`API request failed with status ${response.status}: ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
       }
 
-      let data;
+      let responseText;
       try {
-        data = await response.json();
-      } catch (e) {
-        console.error('[VyOS API] Error parsing JSON response:', e);
-        const responseText = await response.text();
-        console.error('[VyOS API] Raw response:', responseText);
-        throw new Error(`Failed to parse API response as JSON: ${e.message}`);
+        // First get the raw text for debugging
+        responseText = await response.clone().text();
+        console.log('[VyOS API] Raw response:', responseText);
+        
+        // Then parse as JSON
+        const data = await response.json();
+        console.log('[VyOS API] JSON data successfully parsed');
+        
+        if (data.errors) {
+          console.error('[VyOS API] GraphQL errors:', JSON.stringify(data.errors));
+          throw new Error(
+            `GraphQL Error: ${data.errors.map(e => e.message).join(', ')}`
+          );
+        }
+        
+        console.log('[VyOS API] Request successful');
+        return data.data;
+      } catch (parseError) {
+        console.error('[VyOS API] Error parsing response:', parseError);
+        console.error('[VyOS API] Response was:', responseText);
+        throw new Error(`Failed to parse API response: ${parseError.message}`);
       }
-      
-      console.log('[VyOS API] Response data:', JSON.stringify(data));
-      
-      if (data.errors) {
-        console.error('[VyOS API] GraphQL errors:', JSON.stringify(data.errors));
-        throw new Error(
-          `GraphQL Error: ${data.errors.map(e => e.message).join(', ')}`
-        );
-      }
-      
-      return data.data;
     } catch (fetchError) {
-      console.error('[VyOS API] Fetch error:', fetchError);
-      // Check for CORS errors or network failures
-      if (fetchError.message.includes('NetworkError') || 
-          fetchError.message.includes('CORS') ||
-          fetchError.message.includes('Failed to fetch')) {
-        console.error('[VyOS API] Possible CORS or network error detected');
-        
-        // Try to give more specific advice
-        if (fetchError.message.includes('SSL')) {
-          console.error('[VyOS API] SSL/TLS error detected. Make sure VYOS_API_INSECURE is set to "true" for self-signed certificates.');
-        }
-        
-        if (API_CONFIG.endpoint.startsWith('https:')) {
-          console.error('[VyOS API] HTTPS endpoint detected. Browser security may be blocking the request to an insecure endpoint.');
-        }
+      console.error('\n[VyOS API] ⚠️ FETCH ERROR ⚠️');
+      console.error('[VyOS API] Error details:', fetchError);
+      console.error('[VyOS API] Error message:', fetchError.message);
+      
+      // Enhanced network error diagnostics
+      const isNetworkError = fetchError.message.includes('Failed to fetch') || 
+                            fetchError.message.includes('NetworkError') ||
+                            fetchError.message.includes('Network request failed');
+                            
+      if (isNetworkError) {
+        console.error('\n[VyOS API] 🔴 NETWORK ERROR DETECTED');
+        console.error('[VyOS API] Common causes:');
+        console.error('  1. The VyOS router might not be reachable');
+        console.error('  2. The VyOS API might not be running');
+        console.error('  3. CORS might be blocking the request');
+        console.error('  4. A firewall might be blocking the request');
+        console.error('\n[VyOS API] Try running this curl command in your terminal:');
+        console.error(`curl -k -X POST ${API_CONFIG.endpoint} -H "Content-Type: application/json" -d '{"query": "{ShowMemory(data: {key: \\"${API_CONFIG.apiKey}\\"}) {success errors data {result}}}"}'`);
+        console.error('\n[VyOS API] If curl works but browser requests fail, it is likely a CORS issue');
       }
+      
       throw fetchError;
     }
   } catch (error) {
-    console.error('[VyOS API] Error in executeQuery:', error);
+    console.error('[VyOS API] Fatal error in executeQuery:', error);
     throw error;
   }
 }
