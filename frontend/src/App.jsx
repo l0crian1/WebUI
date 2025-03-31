@@ -12,71 +12,59 @@ import {
   ListItemIcon,
   ListItemText,
   IconButton,
-  Paper,
-  Container,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Person as PersonIcon,
-  Security as SecurityIcon,
-  Apps as AppsIcon,
-  Info as InfoIcon,
+  Dashboard as DashboardIcon,
   ExpandMore as ExpandMoreIcon,
-  Devices as DevicesIcon,
-  Link as LinkIcon,
+  Router as RouterIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
-import Logo from './Logo';
 
 // Drawer width
 const drawerWidth = 284;
 
 function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [selectedMenuItem, setSelectedMenuItem] = useState('Signing in');
+  const [expandedSections, setExpandedSections] = useState({
+    Overview: true,
+    Routing: true
+  });
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
+  const handleSectionToggle = (section) => {
+    setExpandedSections({
+      ...expandedSections,
+      [section]: !expandedSections[section]
+    });
+  };
+
   const mainMenuItems = [
-    { text: 'Personal info', icon: <PersonIcon /> },
     { 
-      text: 'Account security', 
-      icon: <SecurityIcon />,
-      expandable: true,
-      subItems: [
-        { text: 'Signing in', selected: true },
-        { text: 'Device activity' },
-        { text: 'Linked accounts' }
+      section: 'Overview',
+      icon: <DashboardIcon />,
+      items: [
+        { text: 'Dashboard' }
       ]
     },
-    { text: 'Applications', icon: <AppsIcon /> },
-    { text: 'Resources', icon: <InfoIcon /> },
+    { 
+      section: 'Routing', 
+      icon: <RouterIcon />,
+      items: [
+        { text: 'BGP' },
+        { text: 'Static' }
+      ]
+    },
   ];
 
   const drawer = (
     <Box sx={{ bgcolor: '#252525', height: '100%' }}>
-      <Toolbar sx={{ minHeight: '64px !important' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Logo sx={{ width: 32, height: 32, mr: 1, color: 'white' }} />
-          <Typography 
-            variant="h6" 
-            component="div" 
-            sx={{ 
-              color: 'white',
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              fontWeight: 300
-            }}
-          >
-            Zerotier
-          </Typography>
-        </Box>
-      </Toolbar>
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)' }} />
       <List sx={{ p: 0 }}>
-        {mainMenuItems.map((item) => (
-          <Box key={item.text}>
+        {mainMenuItems.map((section) => (
+          <Box key={section.section}>
             <ListItem 
               disablePadding 
               sx={{ 
@@ -85,6 +73,7 @@ function App() {
               }}
             >
               <ListItemButton
+                onClick={() => handleSectionToggle(section.section)}
                 sx={{
                   py: 1.5,
                   px: 2,
@@ -99,34 +88,36 @@ function App() {
                     color: 'rgba(255,255,255,0.7)'
                   }}
                 >
-                  {item.icon}
+                  {section.icon}
                 </ListItemIcon>
                 <ListItemText 
-                  primary={item.text} 
+                  primary={section.section} 
                   sx={{ 
                     '& .MuiTypography-root': { 
                       fontSize: '0.95rem',
-                      fontWeight: item.expandable ? 500 : 400,
+                      fontWeight: 500,
                       color: 'white'
                     }
                   }}
                 />
-                {item.expandable && (
-                  <ExpandMoreIcon sx={{ color: 'rgba(255,255,255,0.5)' }} />
-                )}
+                <ExpandMoreIcon 
+                  sx={{ 
+                    color: 'rgba(255,255,255,0.5)',
+                    transform: expandedSections[section.section] ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s'
+                  }} 
+                />
               </ListItemButton>
             </ListItem>
             
-            {item.expandable && item.subItems && (
+            {expandedSections[section.section] && (
               <List disablePadding>
-                {item.subItems.map((subItem) => (
+                {section.items.map((item) => (
                   <ListItem 
-                    key={subItem.text} 
+                    key={item.text} 
                     disablePadding
                     sx={{ 
                       display: 'block',
-                      bgcolor: subItem.selected ? '#2d2d2d' : 'transparent',
-                      borderLeft: subItem.selected ? '4px solid white' : 'none',
                     }}
                   >
                     <ListItemButton
@@ -140,11 +131,11 @@ function App() {
                       }}
                     >
                       <ListItemText 
-                        primary={subItem.text} 
+                        primary={item.text} 
                         sx={{ 
                           '& .MuiTypography-root': { 
                             fontSize: '0.9rem',
-                            fontWeight: subItem.selected ? 500 : 400,
+                            fontWeight: 400,
                             color: 'white'
                           }
                         }}
@@ -180,21 +171,16 @@ function App() {
           >
             <MenuIcon />
           </IconButton>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Logo sx={{ width: 32, height: 32, mr: 1, color: 'white' }} />
-            <Typography 
-              variant="h6" 
-              component="div" 
-              sx={{ 
-                color: 'white',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                fontWeight: 300
-              }}
-            >
-              Zerotier
-            </Typography>
-          </Box>
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ 
+              color: 'white',
+              fontWeight: 500
+            }}
+          >
+            VyOS WebUI
+          </Typography>
         </Toolbar>
       </AppBar>
       <Drawer
@@ -242,37 +228,7 @@ function App() {
           width: { sm: `calc(100% - ${drawerWidth}px)` }
         }}
       >
-        <Container maxWidth="md" sx={{ py: 4 }}>
-          <Typography variant="h4" sx={{ mb: 1, fontWeight: 400 }}>
-            Signing in
-          </Typography>
-          
-          <Typography variant="body1" sx={{ mb: 4, color: 'rgba(255,255,255,0.7)' }}>
-            Configure ways to sign in.
-          </Typography>
-          
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: 400 }}>
-            Basic authentication
-          </Typography>
-          
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 400, fontSize: '1rem', mb: 1 }}>
-              Password
-            </Typography>
-            
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 2 }}>
-              Sign in by entering your password.
-            </Typography>
-            
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)', my: 2 }} />
-            
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', textAlign: 'right' }}>
-              Password is not set up.
-            </Typography>
-            
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)', mt: 2 }} />
-          </Box>
-        </Container>
+        {/* Main content will go here */}
       </Box>
     </Box>
   );
