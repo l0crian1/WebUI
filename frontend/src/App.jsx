@@ -138,8 +138,8 @@ function App() {
                     <ListItemButton
                       onClick={() => handleItemSelect(item.text)}
                       sx={{
-                        py: 1.5,
-                        pl: selectedItem === item.text ? 6.6 : 7,
+                        py: 1.2,
+                        pl: selectedItem === item.text ? 8.6 : 9,
                         pr: 2,
                         '&:hover': {
                           bgcolor: 'rgba(255, 255, 255, 0.08)'
@@ -150,7 +150,7 @@ function App() {
                         primary={item.text} 
                         sx={{ 
                           '& .MuiTypography-root': { 
-                            fontSize: '0.9rem',
+                            fontSize: '0.85rem',
                             fontWeight: selectedItem === item.text ? 500 : 400,
                             color: 'white'
                           }
