@@ -5,11 +5,27 @@
 
 // API configuration
 const API_CONFIG = {
-  endpoint: process.env.VYOS_API_ENDPOINT || 'https://10.0.101.245/graphql',
-  apiKey: process.env.VYOS_API_KEY || 'test123',
+  endpoint: process.env.REACT_APP_VYOS_API_ENDPOINT || process.env.VYOS_API_ENDPOINT || 'https://10.0.101.245/graphql',
+  apiKey: process.env.REACT_APP_VYOS_API_KEY || process.env.VYOS_API_KEY || 'test123',
   timeout: 30000, // 30 seconds
-  insecure: process.env.VYOS_API_INSECURE === 'true', // Allow insecure HTTPS
+  insecure: process.env.REACT_APP_VYOS_API_INSECURE === 'true' || process.env.VYOS_API_INSECURE === 'true',
 };
+
+// Debug information about environment configuration
+console.log('[VyOS API] Configuration loaded:', {
+  endpoint: API_CONFIG.endpoint,
+  insecure: API_CONFIG.insecure,
+  useRealApi: process.env.REACT_APP_USE_REAL_API === 'true' || process.env.USE_REAL_API === 'true',
+  environmentVariables: {
+    REACT_APP_VYOS_API_ENDPOINT: process.env.REACT_APP_VYOS_API_ENDPOINT,
+    VYOS_API_ENDPOINT: process.env.VYOS_API_ENDPOINT,
+    REACT_APP_VYOS_API_INSECURE: process.env.REACT_APP_VYOS_API_INSECURE,
+    VYOS_API_INSECURE: process.env.VYOS_API_INSECURE,
+    REACT_APP_USE_REAL_API: process.env.REACT_APP_USE_REAL_API,
+    USE_REAL_API: process.env.USE_REAL_API,
+    NODE_ENV: process.env.NODE_ENV
+  }
+});
 
 /**
  * Execute a GraphQL query against the VyOS API
@@ -19,37 +35,99 @@ const API_CONFIG = {
  */
 async function executeQuery(query, variables = {}) {
   try {
+    console.log('[VyOS API] Executing query:', query);
+    console.log('[VyOS API] Using endpoint:', API_CONFIG.endpoint);
+    console.log('[VyOS API] Insecure mode:', API_CONFIG.insecure);
+    
     const requestBody = {
       query,
       variables,
     };
 
-    const response = await fetch(API_CONFIG.endpoint, {
+    console.log('[VyOS API] Request body:', JSON.stringify(requestBody));
+
+    // Add additional headers for CORS
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    console.log('[VyOS API] Request headers:', headers);
+
+    // Define fetch options with more detailed settings
+    const fetchOptions = {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(requestBody),
-      // In real-world use, you would need to handle SSL certificates properly
-      // This is just to mirror the -k/--insecure flag from curl
-      ...(API_CONFIG.insecure && { rejectUnauthorized: false }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
-    }
-
-    const data = await response.json();
+      mode: 'cors', // Explicitly set CORS mode
+      credentials: 'omit', // Don't send cookies
+      // For the insecure flag handling
+      ...(API_CONFIG.insecure ? { 
+        rejectUnauthorized: false 
+      } : {})
+    };
     
-    if (data.errors) {
-      throw new Error(
-        `GraphQL Error: ${data.errors.map(e => e.message).join(', ')}`
-      );
+    console.log('[VyOS API] Fetch options:', JSON.stringify(fetchOptions, null, 2));
+
+    try {
+      const response = await fetch(API_CONFIG.endpoint, fetchOptions);
+      console.log('[VyOS API] Response status:', response.status, response.statusText);
+      console.log('[VyOS API] Response headers:', Object.fromEntries([...response.headers]));
+
+      if (!response.ok) {
+        console.error('[VyOS API] Response not OK:', response.status, response.statusText);
+        let errorText;
+        try {
+          // Try to get error text if possible
+          errorText = await response.text();
+          console.error('[VyOS API] Error response body:', errorText);
+        } catch (e) {
+          console.error('[VyOS API] Could not read error text:', e);
+        }
+        throw new Error(`API request failed with status ${response.status}: ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
+      }
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        console.error('[VyOS API] Error parsing JSON response:', e);
+        const responseText = await response.text();
+        console.error('[VyOS API] Raw response:', responseText);
+        throw new Error(`Failed to parse API response as JSON: ${e.message}`);
+      }
+      
+      console.log('[VyOS API] Response data:', JSON.stringify(data));
+      
+      if (data.errors) {
+        console.error('[VyOS API] GraphQL errors:', JSON.stringify(data.errors));
+        throw new Error(
+          `GraphQL Error: ${data.errors.map(e => e.message).join(', ')}`
+        );
+      }
+      
+      return data.data;
+    } catch (fetchError) {
+      console.error('[VyOS API] Fetch error:', fetchError);
+      // Check for CORS errors or network failures
+      if (fetchError.message.includes('NetworkError') || 
+          fetchError.message.includes('CORS') ||
+          fetchError.message.includes('Failed to fetch')) {
+        console.error('[VyOS API] Possible CORS or network error detected');
+        
+        // Try to give more specific advice
+        if (fetchError.message.includes('SSL')) {
+          console.error('[VyOS API] SSL/TLS error detected. Make sure VYOS_API_INSECURE is set to "true" for self-signed certificates.');
+        }
+        
+        if (API_CONFIG.endpoint.startsWith('https:')) {
+          console.error('[VyOS API] HTTPS endpoint detected. Browser security may be blocking the request to an insecure endpoint.');
+        }
+      }
+      throw fetchError;
     }
-    
-    return data.data;
   } catch (error) {
-    console.error('VyOS GraphQL API Error:', error);
+    console.error('[VyOS API] Error in executeQuery:', error);
     throw error;
   }
 }
@@ -63,6 +141,7 @@ export const systemResources = {
    * @returns {Promise<Object>} Memory usage data
    */
   getMemory: async () => {
+    console.log('[VyOS API] getMemory: Starting request');
     const query = `{
       ShowMemory(data: {key: "${API_CONFIG.apiKey}"}) {
         success
@@ -74,17 +153,22 @@ export const systemResources = {
     }`;
 
     try {
+      console.log('[VyOS API] getMemory: Executing query');
       const result = await executeQuery(query);
+      console.log('[VyOS API] getMemory: Query result:', JSON.stringify(result));
       
       if (!result.ShowMemory.success) {
+        console.error('[VyOS API] getMemory: API reported failure:', result.ShowMemory.errors);
         throw new Error(`Failed to get memory data: ${result.ShowMemory.errors}`);
       }
       
       // Parse the memory result
+      console.log('[VyOS API] getMemory: Parsing memory data from:', JSON.stringify(result.ShowMemory.data.result));
       const memoryData = parseMemoryData(result.ShowMemory.data.result);
+      console.log('[VyOS API] getMemory: Parsed memory data:', JSON.stringify(memoryData));
       return memoryData;
     } catch (error) {
-      console.error('Error fetching memory data:', error);
+      console.error('[VyOS API] Error fetching memory data:', error);
       throw error;
     }
   },

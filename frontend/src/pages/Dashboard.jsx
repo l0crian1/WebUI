@@ -33,22 +33,39 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      console.log('[Dashboard] Starting fetchDashboardData');
       setLoading(true);
       try {
         // Determine if we should use mock data or real API
-        const useRealApi = process.env.USE_REAL_API === 'true';
+        const useRealApi = process.env.REACT_APP_USE_REAL_API === 'true' || process.env.USE_REAL_API === 'true';
+        console.log('[Dashboard] useRealApi:', useRealApi);
+        console.log('[Dashboard] Environment variables:', {
+          REACT_APP_VYOS_API_ENDPOINT: process.env.REACT_APP_VYOS_API_ENDPOINT,
+          VYOS_API_ENDPOINT: process.env.VYOS_API_ENDPOINT,
+          REACT_APP_USE_REAL_API: process.env.REACT_APP_USE_REAL_API,
+          USE_REAL_API: process.env.USE_REAL_API,
+          NODE_ENV: process.env.NODE_ENV
+        });
         
         if (useRealApi) {
           // Use the VyOS GraphQL API
           try {
+            console.log('[Dashboard] Attempting to fetch memory data from VyOS API');
             const memoryData = await vyosApi.systemResources.getMemory();
+            console.log('[Dashboard] Memory data from API:', memoryData);
             
             // Since we're transitioning, we'll integrate the new API data
             // with the existing data structure
-            setResources(prevResources => ({
-              ...prevResources,
-              memory: memoryData
-            }));
+            console.log('[Dashboard] Updating resources state with memory data');
+            setResources(prevResources => {
+              console.log('[Dashboard] Previous resources:', prevResources);
+              const newResources = {
+                ...prevResources,
+                memory: memoryData
+              };
+              console.log('[Dashboard] New resources:', newResources);
+              return newResources;
+            });
             
             // For CPU and Storage, we use zeros instead of mock data
             const cpuData = {
@@ -63,6 +80,7 @@ const Dashboard = () => {
               free: 0
             };
             
+            console.log('[Dashboard] Setting complete resources state');
             setResources({
               cpu: cpuData,
               memory: memoryData,
@@ -89,10 +107,12 @@ const Dashboard = () => {
               architecture: 'Unknown'
             });
           } catch (apiError) {
-            console.error('Error fetching data from VyOS API:', apiError);
+            console.error('[Dashboard] Error fetching data from VyOS API:', apiError);
+            console.error('[Dashboard] Error details:', apiError.stack);
             throw apiError;
           }
         } else {
+          console.log('[Dashboard] Using zero values instead of mock data (USE_REAL_API is not true)');
           // Use zero values instead of mock data
           
           setSystemStatus({
@@ -134,7 +154,8 @@ const Dashboard = () => {
         
         setError(null);
       } catch (err) {
-        console.error('Error fetching dashboard data:', err);
+        console.error('[Dashboard] Error fetching dashboard data:', err);
+        console.error('[Dashboard] Error stack:', err.stack);
         setError('Failed to load dashboard data. Please try again later.');
       } finally {
         setLoading(false);
@@ -180,6 +201,48 @@ const Dashboard = () => {
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 500 }}>
         Dashboard
       </Typography>
+      
+      {/* Debug Panel - Only visible in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <Paper sx={{ p: 2, mb: 3, bgcolor: '#333333' }}>
+          <Typography variant="h6" sx={{ mb: 2, color: '#ffcc00' }}>
+            API Debug Info
+          </Typography>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2">Environment Variables:</Typography>
+            <pre style={{ fontSize: '0.75rem', backgroundColor: '#222', padding: '8px', borderRadius: '4px', overflow: 'auto' }}>
+              {JSON.stringify({
+                NODE_ENV: process.env.NODE_ENV,
+                USE_REAL_API: process.env.USE_REAL_API,
+                REACT_APP_USE_REAL_API: process.env.REACT_APP_USE_REAL_API,
+                VYOS_API_ENDPOINT: process.env.VYOS_API_ENDPOINT,
+                REACT_APP_VYOS_API_ENDPOINT: process.env.REACT_APP_VYOS_API_ENDPOINT,
+                VYOS_API_INSECURE: process.env.VYOS_API_INSECURE,
+                REACT_APP_VYOS_API_INSECURE: process.env.REACT_APP_VYOS_API_INSECURE
+              }, null, 2)}
+            </pre>
+          </Box>
+          <Box>
+            <Typography variant="subtitle2">Connection Status:</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box 
+                sx={{ 
+                  width: 12, 
+                  height: 12, 
+                  borderRadius: '50%', 
+                  bgcolor: (process.env.USE_REAL_API === 'true' || process.env.REACT_APP_USE_REAL_API === 'true') ? '#4caf50' : '#f44336' 
+                }} 
+              />
+              <Typography variant="body2">
+                {(process.env.USE_REAL_API === 'true' || process.env.REACT_APP_USE_REAL_API === 'true') ? 'Using VyOS API' : 'API Connection Disabled'}
+              </Typography>
+            </Box>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Configured API Endpoint: {process.env.REACT_APP_VYOS_API_ENDPOINT || process.env.VYOS_API_ENDPOINT || 'Not configured'}
+            </Typography>
+          </Box>
+        </Paper>
+      )}
       
       <Box sx={{ mb: 4 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
