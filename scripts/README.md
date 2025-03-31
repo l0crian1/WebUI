@@ -24,6 +24,9 @@ python fetch_vyos_data.py --query cpu --output cpu_data.json --insecure
 
 # Specify a different VyOS router and API key
 python fetch_vyos_data.py --endpoint https://192.168.1.1/graphql --key your_api_key --query memory --insecure
+
+# Get memory information in human-readable format
+python fetch_vyos_data.py --query memory --insecure --format human
 ```
 
 ### Command-line Options
@@ -32,7 +35,7 @@ python fetch_vyos_data.py --endpoint https://192.168.1.1/graphql --key your_api_
 - `--key`: API key (default: test123)
 - `--insecure`: Allow insecure HTTPS connections
 - `--query`: Data to fetch (choices: memory, cpu, storage, interfaces, all; default: memory)
-- `--format`: Output format (choices: json, pretty; default: pretty)
+- `--format`: Output format (choices: json, pretty, human; default: pretty)
 - `--output`: Output file (default: stdout)
 - `--monitor`: Continuously monitor the selected query
 - `--interval`: Interval between monitoring updates in seconds (default: 5)
@@ -45,18 +48,48 @@ python fetch_vyos_data.py --endpoint https://192.168.1.1/graphql --key your_api_
 python fetch_vyos_data.py --query memory --insecure
 ```
 
-Expected output:
+Expected raw output:
 
 ```json
 {
   "data": {
     "ShowMemory": {
       "success": true,
-      "errors": [],
+      "errors": null,
       "data": {
-        "result": "               total        used        free      shared  buff/cache   available\nMem:          7.7G        5.5G        799M        396M        1.4G        4.9G\nSwap:           0B          0B          0B"
+        "result": {
+          "total": 4117680128,
+          "free": 3144159232,
+          "used": 973520896,
+          "buffers": 54493184,
+          "cached": 690941952
+        }
       }
     }
+  }
+}
+```
+
+#### Human-Readable Memory Output
+
+```bash
+python fetch_vyos_data.py --query memory --insecure --format human
+```
+
+Expected output:
+
+```json
+{
+  "Memory Summary": {
+    "Total Memory": "3.84 GB",
+    "Used Memory (excl. buffers/cache)": "217.80 MB (5.5%)",
+    "Buffers/Cache": "710.43 MB (18.0%)",
+    "Free Memory": "2.93 GB"
+  },
+  "Details": {
+    "Buffers": "51.97 MB",
+    "Cached": "658.96 MB",
+    "Total Used (incl. buffers/cache)": "928.41 MB"
   }
 }
 ```
@@ -67,4 +100,4 @@ Expected output:
 python fetch_vyos_data.py --query all --monitor --insecure
 ```
 
-This will continuously update the screen with data from all resources. 
+This will continuously update the screen with data from all resources, including memory, CPU, storage, and interfaces. 

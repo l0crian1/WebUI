@@ -36,7 +36,7 @@ def parse_args():
                         default='memory', help='Data to fetch (default: memory)')
     
     # Output options
-    parser.add_argument('--format', type=str, choices=['json', 'pretty'], default='pretty',
+    parser.add_argument('--format', type=str, choices=['json', 'pretty', 'human'], default='pretty',
                         help='Output format (default: pretty)')
     parser.add_argument('--output', type=str, help='Output file (default: stdout)')
     parser.add_argument('--monitor', action='store_true',
@@ -150,12 +150,64 @@ def execute_query(query, endpoint, insecure=False):
         sys.exit(1)
 
 
-def format_output(data, format_type):
+def format_memory_data(data, format_type='human'):
+    """Format memory data in a human-readable way."""
+    if format_type != 'human':
+        return data
+    
+    try:
+        # Navigate to the actual memory data
+        memory_data = data['data']['ShowMemory']['data']['result']
+        
+        # Convert bytes to MB
+        def bytes_to_human_readable(bytes_value):
+            """Convert bytes to human readable format."""
+            if bytes_value < 1024:
+                return f"{bytes_value} B"
+            elif bytes_value < 1024 * 1024:
+                return f"{bytes_value / 1024:.2f} KB"
+            elif bytes_value < 1024 * 1024 * 1024:
+                return f"{bytes_value / (1024 * 1024):.2f} MB"
+            else:
+                return f"{bytes_value / (1024 * 1024 * 1024):.2f} GB"
+        
+        # Calculate actual used memory (excluding buffers and cache)
+        actual_used = memory_data['used'] - memory_data['buffers'] - memory_data['cached']
+        used_percent = (actual_used / memory_data['total']) * 100
+        buffers_cache = memory_data['buffers'] + memory_data['cached']
+        buffers_cache_percent = (buffers_cache / memory_data['total']) * 100
+        
+        # Create a formatted output
+        output = {
+            "Memory Summary": {
+                "Total Memory": bytes_to_human_readable(memory_data['total']),
+                "Used Memory (excl. buffers/cache)": f"{bytes_to_human_readable(actual_used)} ({used_percent:.1f}%)",
+                "Buffers/Cache": f"{bytes_to_human_readable(buffers_cache)} ({buffers_cache_percent:.1f}%)",
+                "Free Memory": bytes_to_human_readable(memory_data['free']),
+            },
+            "Details": {
+                "Buffers": bytes_to_human_readable(memory_data['buffers']),
+                "Cached": bytes_to_human_readable(memory_data['cached']),
+                "Total Used (incl. buffers/cache)": bytes_to_human_readable(memory_data['used']),
+            }
+        }
+        
+        return output
+        
+    except (KeyError, TypeError) as e:
+        print(f"Error formatting memory data: {e}", file=sys.stderr)
+        return data
+
+
+def format_output(data, format_type, query_type=None):
     """Format the output according to the specified format."""
     if format_type == 'json':
         return json.dumps(data)
     elif format_type == 'pretty':
         return json.dumps(data, indent=2)
+    elif format_type == 'human' and query_type == 'memory':
+        formatted_data = format_memory_data(data, format_type)
+        return json.dumps(formatted_data, indent=2)
     else:
         return str(data)
 
@@ -183,7 +235,7 @@ def main():
                 result = execute_query(query, args.endpoint, args.insecure)
                 
                 # Format and display the output
-                output = format_output(result, args.format)
+                output = format_output(result, args.format, args.query)
                 
                 # Clear the screen and write the output
                 os.system('cls' if os.name == 'nt' else 'clear')
@@ -201,7 +253,7 @@ def main():
         result = execute_query(query, args.endpoint, args.insecure)
         
         # Format the output
-        output = format_output(result, args.format)
+        output = format_output(result, args.format, args.query)
         
         # Write the output
         write_output(output, args.output)

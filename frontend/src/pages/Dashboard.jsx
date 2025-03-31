@@ -257,8 +257,21 @@ const Dashboard = () => {
                 <Box sx={{ position: 'relative', display: 'inline-flex', mr: 2 }}>
                   <CircularProgress
                     variant="determinate"
-                    value={resources ? (resources.memory.used / resources.memory.total) * 100 : 0}
+                    value={resources && resources.memory ? 
+                      Math.round((resources.memory.actualUsed || resources.memory.used) / resources.memory.total * 100) : 0}
                     size={60}
+                    sx={{ color: '#4caf50' }}
+                  />
+                  <CircularProgress
+                    variant="determinate"
+                    value={resources && resources.memory ? 
+                      Math.round(resources.memory.used / resources.memory.total * 100) : 0}
+                    size={60}
+                    sx={{ 
+                      color: 'rgba(255, 255, 255, 0.3)', 
+                      position: 'absolute',
+                      left: 0
+                    }}
                   />
                   <Box
                     sx={{
@@ -273,17 +286,36 @@ const Dashboard = () => {
                     }}
                   >
                     <Typography variant="caption" component="div" color="text.secondary">
-                      {resources ? Math.round((resources.memory.used / resources.memory.total) * 100) : 0}%
+                      {resources && resources.memory ? 
+                        Math.round((resources.memory.actualUsed || resources.memory.used) / resources.memory.total * 100) : 0}%
                     </Typography>
                   </Box>
                 </Box>
-                <Box>
+                <Box sx={{ flexGrow: 1 }}>
                   <Typography variant="body2">
-                    Used: {resources ? `${Math.round(resources.memory.used / 1024)} MB` : '0 MB'}
+                    Used: {resources?.memory ? 
+                      `${Math.round((resources.memory.actualUsed || resources.memory.used))} MB` : 
+                      '0 MB'} (excluding buffers/cache)
                   </Typography>
                   <Typography variant="body2">
-                    Total: {resources ? `${Math.round(resources.memory.total / 1024)} MB` : '0 MB'}
+                    Total: {resources?.memory ? `${Math.round(resources.memory.total)} MB` : '0 MB'}
                   </Typography>
+                  <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
+                    <Box 
+                      sx={{ 
+                        width: '12px', 
+                        height: '12px', 
+                        bgcolor: 'rgba(255, 255, 255, 0.3)', 
+                        mr: 1, 
+                        borderRadius: '2px' 
+                      }} 
+                    />
+                    <Typography variant="caption">
+                      Buffers/Cache: {resources?.memory ? 
+                        `${Math.round((resources.memory.buffers || 0) + (resources.memory.cached || 0))} MB` : 
+                        '0 MB'}
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
               
