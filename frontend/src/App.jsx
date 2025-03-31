@@ -30,6 +30,7 @@ function App() {
     Overview: true,
     Routing: true
   });
+  const [selectedItem, setSelectedItem] = useState('Dashboard');
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -40,6 +41,10 @@ function App() {
       ...expandedSections,
       [section]: !expandedSections[section]
     });
+  };
+
+  const handleItemSelect = (item) => {
+    setSelectedItem(item);
   };
 
   const mainMenuItems = [
@@ -69,14 +74,22 @@ function App() {
               disablePadding 
               sx={{ 
                 display: 'block',
-                py: 0
+                py: 0,
+                bgcolor: !section.items.some(item => item.text === selectedItem) && selectedItem === section.section ? '#333333' : 'transparent',
+                borderLeft: !section.items.some(item => item.text === selectedItem) && selectedItem === section.section ? '4px solid white' : 'none',
               }}
             >
               <ListItemButton
-                onClick={() => handleSectionToggle(section.section)}
+                onClick={() => {
+                  handleSectionToggle(section.section);
+                  if (!section.items || section.items.length === 0) {
+                    handleItemSelect(section.section);
+                  }
+                }}
                 sx={{
                   py: 1.5,
                   px: 2,
+                  pl: !section.items.some(item => item.text === selectedItem) && selectedItem === section.section ? 1.6 : 2,
                   '&:hover': {
                     bgcolor: 'rgba(255, 255, 255, 0.08)'
                   }
@@ -118,12 +131,15 @@ function App() {
                     disablePadding
                     sx={{ 
                       display: 'block',
+                      bgcolor: selectedItem === item.text ? '#333333' : 'transparent',
+                      borderLeft: selectedItem === item.text ? '4px solid white' : 'none',
                     }}
                   >
                     <ListItemButton
+                      onClick={() => handleItemSelect(item.text)}
                       sx={{
                         py: 1.5,
-                        pl: 7,
+                        pl: selectedItem === item.text ? 6.6 : 7,
                         pr: 2,
                         '&:hover': {
                           bgcolor: 'rgba(255, 255, 255, 0.08)'
@@ -135,7 +151,7 @@ function App() {
                         sx={{ 
                           '& .MuiTypography-root': { 
                             fontSize: '0.9rem',
-                            fontWeight: 400,
+                            fontWeight: selectedItem === item.text ? 500 : 400,
                             color: 'white'
                           }
                         }}
